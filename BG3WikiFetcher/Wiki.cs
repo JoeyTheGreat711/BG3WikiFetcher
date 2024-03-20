@@ -92,7 +92,8 @@ namespace BG3WikiFetcher
         private static List<string> ignorableStarts = new List<string>()
         {
             "the ",
-            "a "
+            "a ",
+            "on "
         };
         //substitutions to make in the middle of a string
         private static Dictionary<string, string> substitutions = new Dictionary<string, string>()
