@@ -16,7 +16,7 @@ namespace BG3WikiFetcher
         private static string accessTokenUrl = "https://www.reddit.com/api/v1/access_token";
         private static string authUrl = "https://www.reddit.com/api/v1/authorize?";
         private static string redirectUri = "http://localhost:8080";
-        private static string aboutUrl = "https://www.reddit.com/u/BG3WikiFetcher";
+        private static string aboutUrl = "https://www.reddit.com/user/BG3WikiFetcher/comments/1bk01df";
         //client objects
         private static HttpClient httpClient = new HttpClient();
         private static RedditClient redditClient;
