@@ -6,5 +6,5 @@ using Reddit;
 //initialize program
 await Wiki.updatePages();
 await RedditHandler.initialize();
-//infinite delay so that program does not exit
+//infinite delay so that the program does not exit
 await Task.Delay(-1);

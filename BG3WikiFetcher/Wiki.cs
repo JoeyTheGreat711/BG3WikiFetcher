@@ -64,7 +64,7 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="input">as-typed user input</param>
         /// <returns>page object containing all necessary information about closest page, or null if none was found</returns>
-        public static Page findPage(string input)
+        public static Page? findPage(string input)
         {
             //standardize user input for initial search, since page names were also standardized
             string standardizedInput = Page.standardizeSearch(input);

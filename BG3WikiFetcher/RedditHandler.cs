@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Reddit.Controllers;
 using Reddit.Controllers.EventArgs;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 
 namespace BG3WikiFetcher
 {
@@ -16,6 +17,7 @@ namespace BG3WikiFetcher
         private static string accessTokenUrl = "https://www.reddit.com/api/v1/access_token";
         private static string authUrl = "https://www.reddit.com/api/v1/authorize?";
         private static string redirectUri = "http://localhost:8080";
+        private static string aboutUrl = "https://www.reddit.com/u/BG3WikiFetcher";
         //client objects
         private static HttpClient httpClient = new HttpClient();
         private static RedditClient redditClient;
@@ -48,13 +50,46 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="sender">sender</param>
         /// <param name="args">comment info</param>
-        private static void commentRecieved(object? sender, CommentsUpdateEventArgs args)
+        private static async void commentRecieved(object? sender, CommentsUpdateEventArgs args)
         {
-            //loop through all new comments
+            //reply to all comments
             foreach (Comment comment in args.Added)
             {
-                //reply to comment not yet implemented
+                if (blacklistedUsers.Contains(comment.Author)) continue;
+                string? reply = redditReply(comment.Body);
+                if (reply != null)
+                {
+                    Console.WriteLine(reply);
+                    await comment.ReplyAsync(reply);
+                }
             }
+        }
+        public static string? redditReply(string commentBody)
+        {
+            //any string ignoring starting and ending whitespace inside [[double brackets]]
+            Regex regex = new Regex(@"\\?\[\\?\[\s*(.+?)\s*\\?\]\\?\]");
+
+            //find all mentioned pages
+            List<Page> pages = new List<Page>();
+            foreach (Match match in regex.Matches(commentBody))
+            {
+                string search = match.Groups[1].Value;
+                Console.WriteLine("searching " + search);
+                Page? page = Wiki.findPage(search);
+                if (page != null)
+                    pages.Add(page);
+            }
+            if (pages.Count > 0)
+            {
+                string reply = "";
+                foreach (Page p in pages)
+                {
+                    reply += string.Format("[{0}]({1})\n\n", p.title, p.getUrl());
+                }
+                reply += string.Format("^This ^action ^was ^performed ^by ^a ^bot. ^[Usage]({0})", aboutUrl);
+                return reply;
+            }
+            return null;
         }
         /// <summary>
         /// make http request to get reddit api token
