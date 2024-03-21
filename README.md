@@ -4,7 +4,7 @@ This is a bot meant to streamline discussions of Baldur's Gate 3 on both Reddit 
 
 # Add to server or subreddit
 
-To add to discord servers: [link](https://discord.com/oauth2/authorize?client_id=1220175919117893723&permissions=3072&scope=bot
+To add to discord servers: [link](https://discord.com/oauth2/authorize?client_id=1220175919117893723&permissions=3072&scope=bot)
 
 To add to subreddits: dm me on Reddit (u/joeythegreat711) or Discord (joey_the_great)
 
