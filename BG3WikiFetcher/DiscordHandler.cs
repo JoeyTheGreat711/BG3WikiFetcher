@@ -15,8 +15,11 @@ namespace BG3WikiFetcher
     /// </summary>
     public class DiscordHandler
     {
+        //important discord ids
+        private static ulong masterUserId = 637997156883628046;
         //static client object
         private static DiscordSocketClient discordClient;
+        private static bool clientReady = false;
         /// <summary>
         /// login to discord and start bot
         /// </summary>
@@ -33,6 +36,7 @@ namespace BG3WikiFetcher
             discordClient.MessageReceived += MessageRecieved;
             await discordClient.LoginAsync(TokenType.Bot, secrets.discordToken);
             await discordClient.StartAsync();
+            clientReady = true;
         }
         /// <summary>
         /// discord logmessage handler, prints logs to console with discord flag
@@ -69,6 +73,18 @@ namespace BG3WikiFetcher
             foreach (Page p in pages)
                 reply += string.Format("[{0}](<{1}>)\n", p.title, p.getUrl());
             return reply;
+        }
+        /// <summary>
+        /// dm master user to confirm that a subreddit has been successfully toggled
+        /// </summary>
+        /// <param name="subredditName">name of the toggled subreddit</param>
+        /// <param name="status"><subreddit's new listening status/param>
+        public static async Task ConfirmSubredditToggle(string subredditName, bool status)
+        {
+            if (!clientReady) return;
+            IUser user = await discordClient.GetUserAsync(masterUserId);
+            IDMChannel channel = await user.CreateDMChannelAsync();
+            await channel.SendMessageAsync(string.Format("listening status for r/{0} has been set to {1}", subredditName, status));
         }
     }
 }

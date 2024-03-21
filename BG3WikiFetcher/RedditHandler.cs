@@ -5,6 +5,8 @@ using Reddit.Controllers;
 using Reddit.Controllers.EventArgs;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using Reddit.Inputs.PrivateMessages;
+using Reddit.Inputs.LinksAndComments;
 
 namespace BG3WikiFetcher
 {
@@ -22,8 +24,9 @@ namespace BG3WikiFetcher
         private static HttpClient httpClient = new HttpClient();
         private static RedditClient redditClient;
         //important reddit strings
-        private static List<string> subredditNames = new List<string> { "testingground4bots" };
+        private static List<string> subredditNames = new List<string>();
         private static List<string> blacklistedUsers = new List<string> { "BG3WikiFetcher" }; //don't waste resources responding to its own comments
+        private static List<string> masterUsers = new List<string> { "joeythegreat711" }; //users which can toggle subreddits to be listened to
         /// <summary>
         /// get reddit access token, login, and start listening to comments
         /// </summary>
@@ -33,8 +36,8 @@ namespace BG3WikiFetcher
             string token = await getAccessToken(secrets);
             //login
             redditClient = new RedditClient(appId: secrets.redditId, appSecret: secrets.redditSecret, userAgent: "BG3WikiFetcher/v0.1 by joeythegreat711", accessToken: token);
-            Log("Logged in as " + redditClient.Account.Me.Name);
             //start listening to comments
+            GetSubreddits();
             List<Subreddit> subreddits = subredditNames.Select(x => redditClient.Subreddit(x)).ToList();
             foreach (Subreddit subreddit in subreddits)
             {
@@ -42,6 +45,10 @@ namespace BG3WikiFetcher
                 subreddit.Comments.MonitorNew();
                 subreddit.Comments.NewUpdated += commentRecieved;
             }
+            redditClient.Account.Messages.GetMessagesInbox();
+            redditClient.Account.Messages.MonitorInbox();
+            redditClient.Account.Messages.InboxUpdated += inboxUpdated;
+            Log("Logged in as " + redditClient.Account.Me.Name);
         }
         /// <summary>
         /// handler method for comment listener
@@ -53,11 +60,28 @@ namespace BG3WikiFetcher
             //reply to all comments
             foreach (Comment comment in args.Added)
             {
+                if (!subredditNames.Contains(comment.Subreddit)) continue;
                 if (blacklistedUsers.Contains(comment.Author)) continue;
                 string? reply = redditReply(comment.Body);
                 if (reply == null) return;
                 await comment.ReplyAsync(reply);
             }
+        }
+        /// <summary>
+        /// handler method for message listener, only used for addin/removing subreddits without restarting the bot
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private static async void inboxUpdated(object? sender, MessagesUpdateEventArgs args)
+        {
+            foreach (Reddit.Things.Message message in args.Added)
+            {
+                if (!masterUsers.Contains(message.Author)) continue;
+                bool subredditStatus = ToggleSubreddit(message.Body);
+                await DiscordHandler.ConfirmSubredditToggle(message.Body, subredditStatus);
+                Log("Toggling subreddit: " + message.Body.ToLower());
+            }
+            await redditClient.Account.Messages.MarkAllReadAsync();
         }
         /// <summary>
         /// generate response formatted for a reddit comment containing links to all mentioned pages
@@ -104,6 +128,52 @@ namespace BG3WikiFetcher
         private static void Log(string msg)
         {
             Console.WriteLine("[Reddit] " + msg);
+        }
+        /// <summary>
+        /// load subreddits from subreddits.json
+        /// </summary>
+        private static void GetSubreddits()
+        {
+            StreamReader sr = new StreamReader(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/subreddits.json");
+            string json = sr.ReadToEnd();
+            sr.Close();
+            subredditNames = JsonConvert.DeserializeObject<List<string>>(json);
+        }
+        /// <summary>
+        /// save subreddits to subreddits.json
+        /// </summary>
+        private static void SetSubreddits()
+        {
+            string json = JsonConvert.SerializeObject(subredditNames, Formatting.Indented);
+            StreamWriter sr = new StreamWriter(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/subreddits.json");
+            sr.Write(json);
+            sr.Close();
+        }
+        /// <summary>
+        /// toggle whether to listen to a subreddit
+        /// </summary>
+        /// <param name="subredditName">name of subreddit to be toggled</param>
+        private static bool ToggleSubreddit(string subredditName)
+        {
+            GetSubreddits();
+            bool containsSubreddit = subredditNames.Contains(subredditName);
+            Subreddit subreddit = redditClient.Subreddit(subredditName);
+            if (containsSubreddit)
+            {
+                subreddit.Comments.NewUpdated -= commentRecieved;
+                subreddit.Comments.KillAllMonitoringThreads();
+                subredditNames.Remove(subredditName);
+            }
+            else
+            {
+                if (subreddit.Comments.New.Count == 0)
+                    subreddit.Comments.GetNew();
+                subreddit.Comments.MonitorNew();
+                subreddit.Comments.NewUpdated += commentRecieved;
+                subredditNames.Add(subredditName);
+            }
+            SetSubreddits();
+            return !containsSubreddit;
         }
     }
 }

@@ -108,6 +108,10 @@ namespace BG3WikiFetcher
             }
             return pages;
         }
+        private static void Log(string message)
+        {
+            Console.WriteLine("[Wiki] " + message);
+        }
     }
     /// <summary>
     /// class containing info about a particular wiki page
@@ -120,6 +124,11 @@ namespace BG3WikiFetcher
             "the ",
             "a ",
             "on "
+        };
+        //a list of strings which can be ignored when at the end of a sring
+        private static List<string> ignorableEnds = new List<string>()
+        {
+            "(condition)"
         };
         //substitutions to make in the middle of a string
         private static Dictionary<string, string> substitutions = new Dictionary<string, string>()
@@ -142,6 +151,11 @@ namespace BG3WikiFetcher
             {
                 if (str.StartsWith(s))
                     str = str.Substring(s.Length);
+            }
+            foreach (string s in ignorableEnds)
+            {
+                if (str.EndsWith(s))
+                    str = str.Substring(0, str.Length - s.Length);
             }
             foreach (KeyValuePair<string, string> pair in substitutions)
                 str = str.Replace(pair.Key, pair.Value);
