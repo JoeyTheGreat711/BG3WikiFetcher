@@ -141,7 +141,7 @@ namespace BG3WikiFetcher
         /// </summary>
         private static void SetSubreddits()
         {
-            string json = JsonConvert.SerializeObject(subredditNames, Formatting.Indented);
+            string json = JsonConvert.SerializeObject(subredditNames);
             StreamWriter sr = new StreamWriter(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/subreddits.json");
             sr.Write(json);
             sr.Close();
