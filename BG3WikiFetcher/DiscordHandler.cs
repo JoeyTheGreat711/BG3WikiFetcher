@@ -29,7 +29,7 @@ namespace BG3WikiFetcher
             };
             discordClient = new DiscordSocketClient(config);
             discordClient.Log += Log;
-            discordClient.MessageReceived += MessageRecieved;
+            discordClient.MessageReceived += MessageReceived;
             await discordClient.LoginAsync(TokenType.Bot, secrets.discordToken);
             await discordClient.StartAsync();
             clientReady = true;
@@ -48,7 +48,7 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="messageData">object containing info about the message</param>
         /// <returns></returns>
-        private static async Task MessageRecieved(SocketMessage messageData)
+        private static async Task MessageReceived(SocketMessage messageData)
         {
             if (messageData.Author.IsBot) return;
             if (messageData.Channel.Id == settingsChannelId && messageData.Content.ToLower().StartsWith("r/"))

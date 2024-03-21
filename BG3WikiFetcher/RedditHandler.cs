@@ -40,7 +40,7 @@ namespace BG3WikiFetcher
             {
                 subreddit.Comments.GetNew();
                 subreddit.Comments.MonitorNew();
-                subreddit.Comments.NewUpdated += commentRecieved;
+                subreddit.Comments.NewUpdated += commentReceived;
             }
             Log("Logged in as " + redditClient.Account.Me.Name);
         }
@@ -49,16 +49,23 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="sender">sender</param>
         /// <param name="args">comment info</param>
-        private static async void commentRecieved(object? sender, CommentsUpdateEventArgs args)
+        private static async void commentReceived(object? sender, CommentsUpdateEventArgs args)
         {
-            //reply to all comments
-            foreach (Comment comment in args.Added)
+            try
             {
-                if (!subredditNames.Contains(comment.Subreddit.ToLower())) continue;
-                if (blacklistedUsers.Contains(comment.Author.ToLower())) continue;
-                string? reply = redditReply(comment.Body);
-                if (reply == null) return;
-                await comment.ReplyAsync(reply);
+                //reply to all comments
+                foreach (Comment comment in args.Added)
+                {
+                    if (!subredditNames.Contains(comment.Subreddit.ToLower())) continue;
+                    if (blacklistedUsers.Contains(comment.Author.ToLower())) continue;
+                    string? reply = redditReply(comment.Body);
+                    if (reply == null) return;
+                    await comment.ReplyAsync(reply);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex.ToString());
             }
         }
         /// <summary>
@@ -138,14 +145,14 @@ namespace BG3WikiFetcher
             Subreddit subreddit = redditClient.Subreddit(subredditName);
             if (containsSubreddit)
             {
-                subreddit.Comments.NewUpdated -= commentRecieved;
+                subreddit.Comments.NewUpdated -= commentReceived;
                 subreddit.Comments.KillAllMonitoringThreads();
                 subredditNames.Remove(subredditName);
             }
             else
             {
                 subreddit.Comments.MonitorNew();
-                subreddit.Comments.NewUpdated += commentRecieved;
+                subreddit.Comments.NewUpdated += commentReceived;
                 subredditNames.Add(subredditName);
             }
             SetSubreddits();
