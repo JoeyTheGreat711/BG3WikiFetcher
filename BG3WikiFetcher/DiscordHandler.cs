@@ -12,6 +12,7 @@ namespace BG3WikiFetcher
     {
         //important discord ids
         private static ulong masterUserId = 637997156883628046;
+        private static ulong settingsChannelId = 1220231791487615058;
         //static client object
         private static DiscordSocketClient discordClient;
         private static bool clientReady = false;
@@ -50,6 +51,12 @@ namespace BG3WikiFetcher
         private static async Task MessageRecieved(SocketMessage messageData)
         {
             if (messageData.Author.IsBot) return;
+            if (messageData.Channel.Id == settingsChannelId && messageData.Content.ToLower().StartsWith("r/"))
+            {
+                Console.WriteLine(messageData.Content.Substring(2));
+                bool status = RedditHandler.ToggleSubreddit(messageData.Content);
+                await ConfirmSubredditToggle(messageData.Content.Substring(2), status);
+            }
             string? reply = DiscordReply(messageData.Content);
             if (reply == null) return;
             MessageReference reference = new MessageReference(messageId: messageData.Id, channelId: messageData.Channel.Id);
@@ -74,7 +81,7 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="subredditName">name of the toggled subreddit</param>
         /// <param name="status"><subreddit's new listening status/param>
-        public static async Task ConfirmSubredditToggle(string subredditName, bool status)
+        private static async Task ConfirmSubredditToggle(string subredditName, bool status)
         {
             if (!clientReady) return;
             IUser user = await discordClient.GetUserAsync(masterUserId);

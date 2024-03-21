@@ -22,7 +22,7 @@ namespace BG3WikiFetcher
         private static RedditClient redditClient;
         //important reddit strings
         private static List<string> subredditNames = new List<string>();
-        private static List<string> blacklistedUsers = new List<string> { "BG3WikiFetcher" }; //don't waste resources responding to its own comments
+        private static List<string> blacklistedUsers = new List<string> { "bg3wikifetcher" }; //don't waste resources responding to its own comments
         private static List<string> masterUsers = new List<string> { "joeythegreat711" }; //users which can toggle subreddits to be listened to
         /// <summary>
         /// get reddit access token, login, and start listening to comments
@@ -42,9 +42,6 @@ namespace BG3WikiFetcher
                 subreddit.Comments.MonitorNew();
                 subreddit.Comments.NewUpdated += commentRecieved;
             }
-            redditClient.Account.Messages.GetMessagesInbox();
-            redditClient.Account.Messages.MonitorInbox();
-            redditClient.Account.Messages.InboxUpdated += inboxUpdated;
             Log("Logged in as " + redditClient.Account.Me.Name);
         }
         /// <summary>
@@ -57,28 +54,12 @@ namespace BG3WikiFetcher
             //reply to all comments
             foreach (Comment comment in args.Added)
             {
-                if (!subredditNames.Contains(comment.Subreddit)) continue;
-                if (blacklistedUsers.Contains(comment.Author)) continue;
+                if (!subredditNames.Contains(comment.Subreddit.ToLower())) continue;
+                if (blacklistedUsers.Contains(comment.Author.ToLower())) continue;
                 string? reply = redditReply(comment.Body);
                 if (reply == null) return;
                 await comment.ReplyAsync(reply);
             }
-        }
-        /// <summary>
-        /// handler method for message listener, only used for addin/removing subreddits without restarting the bot
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        private static async void inboxUpdated(object? sender, MessagesUpdateEventArgs args)
-        {
-            foreach (Reddit.Things.Message message in args.Added)
-            {
-                if (!masterUsers.Contains(message.Author)) continue;
-                bool subredditStatus = ToggleSubreddit(message.Body);
-                await DiscordHandler.ConfirmSubredditToggle(message.Body, subredditStatus);
-                Log("Toggling subreddit: " + message.Body.ToLower());
-            }
-            await redditClient.Account.Messages.MarkAllReadAsync();
         }
         /// <summary>
         /// generate response formatted for a reddit comment containing links to all mentioned pages
@@ -150,7 +131,7 @@ namespace BG3WikiFetcher
         /// toggle whether to listen to a subreddit
         /// </summary>
         /// <param name="subredditName">name of subreddit to be toggled</param>
-        private static bool ToggleSubreddit(string subredditName)
+        public static bool ToggleSubreddit(string subredditName)
         {
             GetSubreddits();
             bool containsSubreddit = subredditNames.Contains(subredditName);
@@ -163,8 +144,6 @@ namespace BG3WikiFetcher
             }
             else
             {
-                if (subreddit.Comments.New.Count == 0)
-                    subreddit.Comments.GetNew();
                 subreddit.Comments.MonitorNew();
                 subreddit.Comments.NewUpdated += commentRecieved;
                 subredditNames.Add(subredditName);
