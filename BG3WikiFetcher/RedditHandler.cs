@@ -4,9 +4,6 @@ using Newtonsoft.Json;
 using Reddit.Controllers;
 using Reddit.Controllers.EventArgs;
 using System.Net.Http.Headers;
-using System.Text.RegularExpressions;
-using Reddit.Inputs.PrivateMessages;
-using Reddit.Inputs.LinksAndComments;
 
 namespace BG3WikiFetcher
 {

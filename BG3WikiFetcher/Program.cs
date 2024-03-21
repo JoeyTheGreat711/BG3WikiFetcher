@@ -1,7 +1,4 @@
 ﻿using BG3WikiFetcher;
-using System.Web;
-using Newtonsoft.Json;
-using Reddit;
 
 //initialize program
 Secrets secrets = Secrets.GetSecrets();

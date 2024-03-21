@@ -101,13 +101,17 @@ namespace BG3WikiFetcher
             foreach (Match match in regex.Matches(input))
             {
                 string search = match.Groups[1].Value;
-                Console.WriteLine("searching " + search);
+                Log("searching " + search);
                 Page? page = findPage(search);
                 if (page != null)
                     pages.Add(page);
             }
             return pages;
         }
+        /// <summary>
+        /// prints log message to console with wiki flag
+        /// </summary>
+        /// <param name="message">message to be printed</param>
         private static void Log(string message)
         {
             Console.WriteLine("[Wiki] " + message);

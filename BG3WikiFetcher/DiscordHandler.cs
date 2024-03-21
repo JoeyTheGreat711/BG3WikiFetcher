@@ -1,10 +1,5 @@
 ﻿//invite: https://discord.com/oauth2/authorize?client_id=1220175919117893723&permissions=3072&scope=bot
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 
