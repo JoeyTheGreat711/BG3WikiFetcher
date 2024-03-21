@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,5 +15,19 @@ namespace BG3WikiFetcher
         public string redditSecret;
         public string redditId;
         public string redditPass;
+        public string discordToken;
+        /// <summary>
+        /// read secrets.json to get secrets such as id, password, etc.
+        /// </summary>
+        /// <returns>object containing secrets</returns>
+        public static Secrets GetSecrets()
+        {
+            //read file
+            StreamReader sr = new StreamReader(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/secrets.json");
+            string secretsJson = sr.ReadToEnd();
+            sr.Close();
+            //parse and return secrets
+            return JsonConvert.DeserializeObject<Secrets>(secretsJson);
+        }
     }
 }

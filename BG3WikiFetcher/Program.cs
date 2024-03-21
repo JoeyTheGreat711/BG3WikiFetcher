@@ -4,7 +4,13 @@ using Newtonsoft.Json;
 using Reddit;
 
 //initialize program
+Secrets secrets = Secrets.GetSecrets();
 await Wiki.updatePages();
-await RedditHandler.initialize();
-//infinite delay so that the program does not exit
-await Task.Delay(-1);
+await RedditHandler.initialize(secrets);
+await DiscordHandler.initialize(secrets);
+//update the wiki pages every 24 hours
+while (true)
+{
+    await Task.Delay(86400000);
+    await Wiki.updatePages();
+}

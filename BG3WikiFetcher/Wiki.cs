@@ -25,11 +25,15 @@ namespace BG3WikiFetcher
         /// <returns></returns>
         public static async Task updatePages()
         {
+            //clear local data
+            stringMatcher = new StringMatcher<string>(MatchingOption.None);
+            allPages.Clear();
             //load sitemap xml file
             HttpClient wikiClient = new HttpClient();
             XmlDocument sitemap = new XmlDocument();
             HttpResponseMessage response = await wikiClient.GetAsync(sitemapUrl);
             sitemap.LoadXml(await response.Content.ReadAsStringAsync());
+            
             /*  xml document expected structure:
              *  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
              *      <url>
@@ -81,6 +85,28 @@ namespace BG3WikiFetcher
                 return pages[0];
             //if multiple pages share the same search name, return closest actual title to actual user input
             return pages.MinBy(x => editDistanceCalculator.CalculateEditDistance(input, x.title));
+        }
+        /// <summary>
+        /// gets all pages mentioned in comment
+        /// </summary>
+        /// <param name="input">entire input string from user</param>
+        /// <returns>list of pages</returns>
+        public static List<Page> findPages(string input)
+        {
+            //any string ignoring starting and ending whitespace inside [[double brackets]]
+            Regex regex = new Regex(@"\\?\[\\?\[\s*(.+?)\s*\\?\]\\?\]");
+
+            //find all mentioned pages
+            List<Page> pages = new List<Page>();
+            foreach (Match match in regex.Matches(input))
+            {
+                string search = match.Groups[1].Value;
+                Console.WriteLine("searching " + search);
+                Page? page = findPage(search);
+                if (page != null)
+                    pages.Add(page);
+            }
+            return pages;
         }
     }
     /// <summary>

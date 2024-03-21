@@ -27,15 +27,13 @@ namespace BG3WikiFetcher
         /// <summary>
         /// get reddit access token, login, and start listening to comments
         /// </summary>
-        public static async Task initialize()
+        public static async Task initialize(Secrets secrets)
         {
-            //load secrets from secrets.json
-            Secrets secrets = GetSecrets();
             //get api token
             string token = await getAccessToken(secrets);
             //login
             redditClient = new RedditClient(appId: secrets.redditId, appSecret: secrets.redditSecret, userAgent: "BG3WikiFetcher/v0.1 by joeythegreat711", accessToken: token);
-            Console.WriteLine("Logged in as " + redditClient.Account.Me.Name);
+            Log("Logged in as " + redditClient.Account.Me.Name);
             //start listening to comments
             List<Subreddit> subreddits = subredditNames.Select(x => redditClient.Subreddit(x)).ToList();
             foreach (Subreddit subreddit in subreddits)
@@ -57,39 +55,24 @@ namespace BG3WikiFetcher
             {
                 if (blacklistedUsers.Contains(comment.Author)) continue;
                 string? reply = redditReply(comment.Body);
-                if (reply != null)
-                {
-                    Console.WriteLine(reply);
-                    await comment.ReplyAsync(reply);
-                }
+                if (reply == null) return;
+                await comment.ReplyAsync(reply);
             }
         }
+        /// <summary>
+        /// generate response formatted for a reddit comment containing links to all mentioned pages
+        /// </summary>
+        /// <param name="commentBody">entire body of reddit comment</param>
+        /// <returns>string to be sent, or null if no pages were found</returns>
         public static string? redditReply(string commentBody)
         {
-            //any string ignoring starting and ending whitespace inside [[double brackets]]
-            Regex regex = new Regex(@"\\?\[\\?\[\s*(.+?)\s*\\?\]\\?\]");
-
-            //find all mentioned pages
-            List<Page> pages = new List<Page>();
-            foreach (Match match in regex.Matches(commentBody))
-            {
-                string search = match.Groups[1].Value;
-                Console.WriteLine("searching " + search);
-                Page? page = Wiki.findPage(search);
-                if (page != null)
-                    pages.Add(page);
-            }
-            if (pages.Count > 0)
-            {
-                string reply = "";
-                foreach (Page p in pages)
-                {
-                    reply += string.Format("[{0}]({1})\n\n", p.title, p.getUrl());
-                }
-                reply += string.Format("^This ^action ^was ^performed ^by ^a ^bot. ^[Usage]({0})", aboutUrl);
-                return reply;
-            }
-            return null;
+            List<Page> pages = Wiki.findPages(commentBody);
+            if (pages.Count == 0) return null;
+            string reply = "";
+            foreach (Page p in pages)
+                reply += string.Format("[{0}]({1})\n\n", p.title, p.getUrl());
+            reply += string.Format("^This ^action ^was ^performed ^by ^a ^bot. ^[Usage]({0})", aboutUrl);
+            return reply;
         }
         /// <summary>
         /// make http request to get reddit api token
@@ -115,17 +98,12 @@ namespace BG3WikiFetcher
             return JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync()).access_token;
         }
         /// <summary>
-        /// read sec5rets.json to get secrets such as id, password, etc.
+        /// print log to console with reddit flag
         /// </summary>
-        /// <returns>object containing secrets</returns>
-        private static Secrets GetSecrets()
+        /// <param name="msg">log message</param>
+        private static void Log(string msg)
         {
-            //read file
-            StreamReader sr = new StreamReader(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/secrets.json");
-            string secretsJson = sr.ReadToEnd();
-            sr.Close();
-            //parse and return secrets
-            return JsonConvert.DeserializeObject<Secrets>(secretsJson);
+            Console.WriteLine("[Reddit] " + msg);
         }
     }
 }
