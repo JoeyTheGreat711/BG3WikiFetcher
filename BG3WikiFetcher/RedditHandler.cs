@@ -4,6 +4,9 @@ using Newtonsoft.Json;
 using Reddit.Controllers;
 using Reddit.Controllers.EventArgs;
 using System.Net.Http.Headers;
+using System.Xml;
+using System.Text.RegularExpressions;
+using System.Net;
 
 namespace BG3WikiFetcher
 {
@@ -14,7 +17,6 @@ namespace BG3WikiFetcher
     {
         //important static urls
         private static string accessTokenUrl = "https://www.reddit.com/api/v1/access_token";
-        private static string authUrl = "https://www.reddit.com/api/v1/authorize?";
         private static string redirectUri = "http://localhost:8080";
         private static string aboutUrl = "https://www.reddit.com/user/BG3WikiFetcher/comments/1bk01df";
         //client objects
@@ -24,6 +26,8 @@ namespace BG3WikiFetcher
         private static List<string> subredditNames = new List<string>();
         private static List<string> blacklistedUsers = new List<string> { "bg3wikifetcher" }; //don't waste resources responding to its own comments
         private static List<string> masterUsers = new List<string> { "joeythegreat711" }; //users which can toggle subreddits to be listened to
+        public static readonly string separator = "\n\n"; //reddit needs two line breaks to display text on a separate line
+        public static readonly string botDisclaimer = string.Format("^This ^action ^was ^performed ^by ^a ^bot. ^[Usage]({0})", aboutUrl);
         /// <summary>
         /// get reddit access token, login, and start listening to comments
         /// </summary>
@@ -58,7 +62,7 @@ namespace BG3WikiFetcher
                 {
                     if (!subredditNames.Contains(comment.Subreddit.ToLower())) continue;
                     if (blacklistedUsers.Contains(comment.Author.ToLower())) continue;
-                    string? reply = redditReply(comment.Body);
+                    string? reply = await redditReply(comment.Body);
                     if (reply == null) return;
                     await comment.ReplyAsync(reply);
                 }
@@ -73,15 +77,10 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="commentBody">entire body of reddit comment</param>
         /// <returns>string to be sent, or null if no pages were found</returns>
-        public static string? redditReply(string commentBody)
+        public static async Task<string?> redditReply(string commentBody)
         {
             List<Page> pages = Wiki.findPages(commentBody);
-            if (pages.Count == 0) return null;
-            string reply = "";
-            foreach (Page p in pages)
-                reply += string.Format("[{0}]({1})\n\n", p.title, p.getUrl());
-            reply += string.Format("^This ^action ^was ^performed ^by ^a ^bot. ^[Usage]({0})", aboutUrl);
-            return reply;
+            return await Wiki.reply(pages, Wiki.ReplyType.Reddit);
         }
         /// <summary>
         /// make http request to get reddit api token
@@ -129,7 +128,7 @@ namespace BG3WikiFetcher
         /// </summary>
         private static void SetSubreddits()
         {
-            string json = JsonConvert.SerializeObject(subredditNames, Formatting.Indented);
+            string json = JsonConvert.SerializeObject(subredditNames, Newtonsoft.Json.Formatting.Indented);
             StreamWriter sr = new StreamWriter(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/subreddits.json");
             sr.Write(json);
             sr.Close();

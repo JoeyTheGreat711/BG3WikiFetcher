@@ -16,6 +16,8 @@ namespace BG3WikiFetcher
         //static client object
         private static DiscordSocketClient discordClient;
         private static bool clientReady = false;
+        //important strings
+        public static readonly string separator = "\n"; //discord needs one line break to display text on a separate line
         /// <summary>
         /// login to discord and start bot
         /// </summary>
@@ -57,7 +59,7 @@ namespace BG3WikiFetcher
                 bool status = RedditHandler.ToggleSubreddit(messageData.Content);
                 await ConfirmSubredditToggle(messageData.Content.Substring(2), status);
             }
-            string? reply = DiscordReply(messageData.Content);
+            string? reply = await DiscordReply(messageData.Content);
             if (reply == null) return;
             MessageReference reference = new MessageReference(messageId: messageData.Id, channelId: messageData.Channel.Id);
             await messageData.Channel.SendMessageAsync(text: reply, messageReference: reference);
@@ -67,14 +69,10 @@ namespace BG3WikiFetcher
         /// </summary>
         /// <param name="messageBody">entire message body</param>
         /// <returns>formatted string to reply with</returns>
-        private static string? DiscordReply(string messageBody)
+        public static async Task<string?> DiscordReply(string messageBody)
         {
             List<Page> pages = Wiki.findPages(messageBody);
-            if (pages.Count == 0) return null;
-            string reply = "";
-            foreach (Page p in pages)
-                reply += string.Format("[{0}](<{1}>)\n", p.title, p.getUrl());
-            return reply;
+            return await Wiki.reply(pages, Wiki.ReplyType.Discord);
         }
         /// <summary>
         /// dm master user to confirm that a subreddit has been successfully toggled
