@@ -56,7 +56,7 @@ namespace BG3WikiFetcher
             if (messageData.Channel.Id == settingsChannelId && messageData.Content.ToLower().StartsWith("r/"))
             {
                 Console.WriteLine(messageData.Content.Substring(2));
-                bool status = RedditHandler.ToggleSubreddit(messageData.Content);
+                bool status = RedditHandler.ToggleSubreddit(messageData.Content.Substring(2));
                 await ConfirmSubredditToggle(messageData.Content.Substring(2), status);
             }
             string? reply = await DiscordReply(messageData.Content);
