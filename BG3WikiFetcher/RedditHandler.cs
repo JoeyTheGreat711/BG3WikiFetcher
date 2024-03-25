@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.Net;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BG3WikiFetcher
 {
@@ -22,12 +23,15 @@ namespace BG3WikiFetcher
         //client objects
         private static HttpClient httpClient = new HttpClient();
         private static RedditClient redditClient;
-        //important reddit strings
+        //important reddit objects
         private static List<string> subredditNames = new List<string>();
+        private static List<Subreddit> subreddits = new List<Subreddit>();
+        private static Queue<Comment> comments = new Queue<Comment>();
+        private static Dictionary<string, List<Comment>> seenComments = new Dictionary<string, List<Comment>>();
         private static List<string> blacklistedUsers = new List<string> { "bg3wikifetcher" }; //don't waste resources responding to its own comments
         private static List<string> masterUsers = new List<string> { "joeythegreat711" }; //users which can toggle subreddits to be listened to
         public static readonly string separator = "\n\n"; //reddit needs two line breaks to display text on a separate line
-        public static readonly string botDisclaimer = string.Format("^This ^action ^was ^performed ^by ^a ^bot. ^[Usage]({0})", aboutUrl);
+        public static readonly string botDisclaimer = string.Format("^This ^action ^was ^performed ^by ^a ^bot. [^(Learn more)]({0})", aboutUrl);
         /// <summary>
         /// get reddit access token, login, and start listening to comments
         /// </summary>
@@ -37,19 +41,53 @@ namespace BG3WikiFetcher
             string token = await getAccessToken(secrets);
             //login
             redditClient = new RedditClient(appId: secrets.redditId, appSecret: secrets.redditSecret, userAgent: "BG3WikiFetcher/v0.1 by joeythegreat711", accessToken: token);
-            //start listening to comments
             GetSubreddits();
-            List<Subreddit> subreddits = subredditNames.Select(x => redditClient.Subreddit(x)).ToList();
-            foreach (Subreddit subreddit in subreddits)
-            {
-                subreddit.Comments.GetNew();
-                subreddit.Comments.MonitorNew();
-                subreddit.Comments.NewUpdated += commentReceived;
-            }
+            //don't respond to old comments
+            getNewComments(0);
+            comments.Clear();
             Log("Logged in as " + redditClient.Account.Me.Name);
         }
         /// <summary>
-        /// handler method for comment listener
+        /// retrieves new comments from relevant subreddits
+        /// </summary>
+        public static void getNewComments(long time)
+        {
+            foreach (Subreddit subreddit in subreddits)
+            {
+                if (!seenComments.ContainsKey(subreddit.Name))
+                    seenComments.Add(subreddit.Name, new List<Comment>());
+                List<Comment> newComments = subreddit.Comments.GetNew(limit: 100);
+                newComments.RemoveAll(x => blacklistedUsers.Contains(x.Author.ToLower()));
+                seenComments[subreddit.Name].RemoveAll(x => !newComments.Exists(y => y.Id == x.Id)); //remove comments that no longer show up on the request from seen in order to save memory
+                newComments.RemoveAll(x => seenComments[subreddit.Name].Exists(y => y.Id == x.Id)); //remove seen comments from new comments
+                foreach (Comment comment in newComments)
+                {
+                    comments.Enqueue(comment);
+                    seenComments[subreddit.Name].Add(comment);
+                }
+            }
+        }
+        /// <summary>
+        /// replies to the first relevant comment in the queue
+        /// </summary>
+        public static async Task replyToOne()
+        {
+            if (comments.Count == 0) return;
+            Comment comment = comments.Dequeue();
+            string? reply = await redditReply(comment.Body);
+            while (reply == null && comments.Count > 0)
+            {
+                comment = comments.Dequeue();
+                reply = await redditReply(comment.Body);
+            }
+            if (reply != null)
+            {
+                Log("replying to " + comment.Permalink);
+                await comment.ReplyAsync(reply);
+            }
+        }
+        /// <summary>
+        /// handler method for comment listener (not used right now)
         /// </summary>
         /// <param name="sender">sender</param>
         /// <param name="args">comment info</param>
@@ -122,6 +160,7 @@ namespace BG3WikiFetcher
             string json = sr.ReadToEnd();
             sr.Close();
             subredditNames = JsonConvert.DeserializeObject<List<string>>(json);
+            subreddits = subredditNames.Select(x => redditClient.Subreddit(x)).ToList();
         }
         /// <summary>
         /// save subreddits to subreddits.json
@@ -140,22 +179,10 @@ namespace BG3WikiFetcher
         public static bool ToggleSubreddit(string subredditName)
         {
             GetSubreddits();
-            bool containsSubreddit = subredditNames.Contains(subredditName);
-            Subreddit subreddit = redditClient.Subreddit(subredditName);
-            if (containsSubreddit)
-            {
-                subreddit.Comments.NewUpdated -= commentReceived;
-                subreddit.Comments.KillAllMonitoringThreads();
-                subredditNames.Remove(subredditName);
-            }
-            else
-            {
-                subreddit.Comments.MonitorNew();
-                subreddit.Comments.NewUpdated += commentReceived;
-                subredditNames.Add(subredditName);
-            }
+            subredditNames.Add(subredditName);
+            subreddits.Add(redditClient.Subreddit(subredditName));
             SetSubreddits();
-            return !containsSubreddit;
+            return subredditNames.Contains(subredditName);
         }
     }
 }

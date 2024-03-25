@@ -64,6 +64,7 @@ namespace BG3WikiFetcher
                     stringMatcher.Add(p.searchName, "");
                 }
             }
+            Log(string.Format("updated wiki, found {0} pages", allPages.Count));
         }
         /// <summary>
         /// searches for closest-matching page title from user input
@@ -103,7 +104,7 @@ namespace BG3WikiFetcher
             foreach (Match match in regex.Matches(input))
             {
                 string search = match.Groups[1].Value;
-                Log("searching " + search);
+                //Log("searching " + search);
                 Page? page = findPage(search);
                 if (page != null)
                     pages.Add(page);

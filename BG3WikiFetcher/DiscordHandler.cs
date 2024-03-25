@@ -42,8 +42,12 @@ namespace BG3WikiFetcher
         /// <param name="msg">log message</param>
         private static Task Log(LogMessage msg)
         {
-            Console.WriteLine("[Discord] " + msg.ToString());
+            Log(msg.ToString());
             return Task.CompletedTask;
+        }
+        private static void Log(string msg)
+        {
+            Console.WriteLine("[Discord] " + msg.ToString());
         }
         /// <summary>
         /// handler for Discord's messageRecieved event
@@ -63,6 +67,7 @@ namespace BG3WikiFetcher
             if (reply == null) return;
             MessageReference reference = new MessageReference(messageId: messageData.Id, channelId: messageData.Channel.Id);
             await messageData.Channel.SendMessageAsync(text: reply, messageReference: reference);
+            Log(string.Format("replying to {0}", messageData.Id));
         }
         /// <summary>
         /// generates formatted string with links to mentioned pages

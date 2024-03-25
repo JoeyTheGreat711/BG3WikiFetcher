@@ -6,13 +6,23 @@ await Wiki.updatePages();
 await RedditHandler.initialize(secrets);
 await DiscordHandler.initialize(secrets);
 
-//update the wiki pages every 24 hours and re-initialize reddit every 6 hours
+//request new comments every minute, reply to one comment every 5 seconds
+//also update the wiki pages every 24 hours
+long nextCommentsUpdate = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 60;
+long nextWikiUpdte = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 86400;
 while (true)
 {
-    for (int i = 0; i < 4; i++)
+    await Task.Delay(5000);
+    await RedditHandler.replyToOne();
+    long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    if (now >= nextCommentsUpdate)
     {
-        await Task.Delay(21600000);
-        await RedditHandler.initialize(secrets);
+        RedditHandler.getNewComments(now);
+        nextCommentsUpdate = now + 60;
     }
-    await Wiki.updatePages();
+    if (now >= nextWikiUpdte)
+    {
+        await Wiki.updatePages();
+        nextWikiUpdte = now + 86400;
+    }
 }
