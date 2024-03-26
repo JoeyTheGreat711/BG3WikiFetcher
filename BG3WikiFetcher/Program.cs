@@ -17,7 +17,7 @@ while (true)
     long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     if (now >= nextCommentsUpdate)
     {
-        RedditHandler.getNewComments(now);
+        RedditHandler.getCommentsAndPosts();
         nextCommentsUpdate = now + 60;
     }
     if (now >= nextWikiUpdte)
