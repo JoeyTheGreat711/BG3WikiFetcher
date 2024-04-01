@@ -106,7 +106,7 @@ namespace BG3WikiFetcher
                 string search = match.Groups[1].Value;
                 //Log("searching " + search);
                 Page? page = findPage(search);
-                if (page != null)
+                if (page != null && !pages.Contains(page))
                     pages.Add(page);
             }
             return pages;
