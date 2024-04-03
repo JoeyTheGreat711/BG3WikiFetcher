@@ -35,7 +35,7 @@ namespace BG3WikiFetcher
             XmlDocument sitemap = new XmlDocument();
             HttpResponseMessage response = await wikiClient.GetAsync(sitemapUrl);
             sitemap.LoadXml(await response.Content.ReadAsStringAsync());
-            
+
             /*  xml document expected structure:
              *  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
              *      <url>
@@ -51,20 +51,15 @@ namespace BG3WikiFetcher
             {
                 //get url from node
                 string url = node.FirstChild.InnerText;
-                //if (url.Count(x => x == '/') == 4) //this works to ignore sub-pages which would cause duplicate errors
-                //{
-                    //create new Page object from url
-                    Page p = new Page(url);
-                    //either create new search name or add to existing one
-                    if (allPages.ContainsKey(p.searchName))
-                        allPages[p.searchName].Add(p);
-                    else
-                        allPages.Add(p.searchName, new List<Page> { p });
-                    //add search name to BK-tree
-                    stringMatcher.Add(p.searchName, "");
-                //}
-                //else
-                //    Log("discarded " + url);
+                //create new Page object from url
+                Page p = new Page(url);
+                //either create new search name or add to existing one
+                if (allPages.ContainsKey(p.searchName))
+                    allPages[p.searchName].Add(p);
+                else
+                    allPages.Add(p.searchName, new List<Page> { p });
+                //add search name to BK-tree
+                stringMatcher.Add(p.searchName, "");
             }
             Log(string.Format("updated wiki, found {0} pages", allPages.Count));
         }
@@ -214,7 +209,7 @@ namespace BG3WikiFetcher
         /// <returns>string with ignorable substrings removed, special characters replaced, and all lowercase</returns>
         public static string standardizeSearch(string str)
         {
-            //deal with sup-pages ("raphael/combat" becomes "raphael combat", etc.)
+            //deal with sub-pages ("raphael/combat" becomes "raphael combat", etc.)
             str = str.Replace("/", " ");
             //convert to lowercase
             str = str.ToLower();
