@@ -5,21 +5,6 @@ using System.Text;
 Secrets secrets = Secrets.GetSecrets();
 await Wiki.updatePages();
 
-Console.WriteLine(string.Join("\n\n", Wiki.allPages.Where(x => x.Value.Count > 1).OrderBy(x => x.Key).Select(x => x.Key + "\n   " + string.Join("\n   ", x.Value.Select(x => x.urlExtension)))));
-//while (true)
-//    Console.WriteLine(Page.standardizeSearch(Console.ReadLine()));
-
-while (true)
-{
-    Console.Write("enter search input: ");
-    Page? page = Wiki.findPage(Console.ReadLine());
-    if (page == null)
-        Console.WriteLine("no page found");
-    else
-        Console.WriteLine("found: \n" + page.getReport());
-}
-
-/*
 await RedditHandler.initialize(secrets);
 await DiscordHandler.initialize(secrets);
 
@@ -43,4 +28,3 @@ while (true)
         nextWikiUpdte = now + 86400;
     }
 }
-*/
