@@ -51,8 +51,8 @@ namespace BG3WikiFetcher
             {
                 //get url from node
                 string url = node.FirstChild.InnerText;
-                if (url.Count(x => x == '/') == 4) //this works to ignore sub-pages which would cause duplicate errors
-                {
+                //if (url.Count(x => x == '/') == 4) //this works to ignore sub-pages which would cause duplicate errors
+                //{
                     //create new Page object from url
                     Page p = new Page(url);
                     //either create new search name or add to existing one
@@ -62,7 +62,9 @@ namespace BG3WikiFetcher
                         allPages.Add(p.searchName, new List<Page> { p });
                     //add search name to BK-tree
                     stringMatcher.Add(p.searchName, "");
-                }
+                //}
+                //else
+                //    Log("discarded " + url);
             }
             Log(string.Format("updated wiki, found {0} pages", allPages.Count));
         }
@@ -189,16 +191,18 @@ namespace BG3WikiFetcher
         {
             "the ",
             "a ",
-            "on "
+            "on ",
+            "legendary action "
         };
         //a list of strings which can be ignored when at the end of a sring
         private static List<string> ignorableEnds = new List<string>()
         {
-            "(condition)"
+            " condition"
         };
         //substitutions to make in the middle of a string
         private static Dictionary<string, string> substitutions = new Dictionary<string, string>()
         {
+            { " of ", " " },
             { " the ", " " },
             { "&", "and" }
         };
@@ -210,33 +214,37 @@ namespace BG3WikiFetcher
         /// <returns>string with ignorable substrings removed, special characters replaced, and all lowercase</returns>
         public static string standardizeSearch(string str)
         {
+            //deal with sup-pages ("raphael/combat" becomes "raphael combat", etc.)
+            str = str.Replace("/", " ");
             //convert to lowercase
             str = str.ToLower();
-            //remove ignorable substrings
+            //replace special characters with alphabetic equivalent, for instance û becomes u
+            str = str.Normalize(NormalizationForm.FormD);
+            str = Regex.Replace(str, @"[^a-zA-Z0-9\s]", "");
+            //replace/remove substrings
             foreach (string s in ignorableStarts)
             {
-                if (str.StartsWith(s))
+                while (str.StartsWith(s))
                     str = str.Substring(s.Length);
             }
             foreach (string s in ignorableEnds)
             {
-                if (str.EndsWith(s))
+                while (str.EndsWith(s))
                     str = str.Substring(0, str.Length - s.Length);
             }
             foreach (KeyValuePair<string, string> pair in substitutions)
                 str = str.Replace(pair.Key, pair.Value);
-            //replace special characters with alphabetic equivalent, for instance û becomes u
-            str = str.Normalize(NormalizationForm.FormD);
-            str = Regex.Replace(str, @"[^a-zA-Z0-9\s]", "");
             //some previous operations may havre created consecutive spaces, so we remove those
             while (str.Contains("  "))
                 str = str.Replace("  ", " ");
+            //this will make searching "brilliance boots" valid to find "boots of brilliance", etc.
+            str = string.Join(" ", str.Split(' ').Order());
             return str;
         }
         //constructor
         public Page(string url)
         {
-            this.urlExtension = url.Split('/')[4];
+            this.urlExtension = string.Join("/", url.Split('/').Skip(4));
             this.title = HttpUtility.UrlDecode(this.urlExtension).Replace("_", " ");
             this.searchName = standardizeSearch(this.title);
         }
@@ -250,6 +258,11 @@ namespace BG3WikiFetcher
         public string getUrl()
         {
             return Wiki.baseUrl + this.urlExtension;
+        }
+        //page report for debugging
+        public string getReport()
+        {
+            return "   " + string.Join("\n   ", new string[] { searchName, title, getUrl() });
         }
     }
 }
