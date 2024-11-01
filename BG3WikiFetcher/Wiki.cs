@@ -114,65 +114,6 @@ namespace BG3WikiFetcher
             return pages;
         }
         /// <summary>
-        /// fetch description of a wiki page
-        /// </summary>
-        /// <param name="page">target page</param>
-        /// <returns>decoded description as string</returns>
-        private static async Task<string?> getDescription(Page page)
-        {
-            HttpClient httpClient = new HttpClient();
-            HttpResponseMessage response = await httpClient.GetAsync(page.getUrl());
-            string responseContent = await response.Content.ReadAsStringAsync();
-            string pattern = "<meta name=\"description\" content=\"(.*?)\"/>";
-            return WebUtility.HtmlDecode(Regex.Match(responseContent, pattern).Groups[1].Value);
-        }
-        /// <summary>
-        /// generate a reply string
-        /// </summary>
-        /// <param name="pages">list of pages requested</param>
-        /// <param name="replyType">platform requesting the reply</param>
-        /// <returns>reply string formatted for the correct platform</returns>
-        public static async Task<string?> reply(List<Page> pages, ReplyType replyType)
-        {
-            if (pages.Count == 0) return null;
-            string separator = "";
-            if (replyType == ReplyType.Discord) separator = DiscordHandler.separator;
-            if (replyType == ReplyType.Reddit) separator = RedditHandler.separator;
-            string reply = "";
-            if (pages.Count == 1)
-            {
-                Page page = pages[0];
-                string url = page.getUrl();
-                if (replyType == ReplyType.Discord)
-                    url = "<" + url + ">";
-                reply += string.Format("[{0}]({1})", page.title, url);
-                string description = await Wiki.getDescription(pages[0]) + separator;
-                if (description.StartsWith(page.title))
-                    description = description.Substring(page.title.Length);
-                else
-                    reply += "\n\n";
-                reply += description;
-            }
-            else
-            {
-                foreach (Page page in pages)
-                {
-                    string url = page.getUrl();
-                    if (replyType == ReplyType.Discord)
-                        url = "<" + url + ">";
-                    reply += string.Format("[{0}]({1}){2}", page.title, url, separator);
-                }
-            }
-            if (replyType == ReplyType.Reddit)
-                reply += RedditHandler.botDisclaimer;
-            return reply;
-        }
-        public enum ReplyType
-        {
-            Discord,
-            Reddit
-        }
-        /// <summary>
         /// prints log message to console with wiki flag
         /// </summary>
         /// <param name="message">message to be printed</param>
