@@ -1,4 +1,5 @@
 ﻿using BG3WikiFetcher;
+using System.Diagnostics;
 using System.Text;
 
 //initialize program
